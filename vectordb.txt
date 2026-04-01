@@ -1,0 +1,24 @@
+vectordb.py — The Notebook (Memory)
+This file is purely about storing and finding information. Think of it like a magical notebook that doesn't just search by exact words — it understands meaning.
+The tools it uses
+ChromaDB is a special kind of database. Normal databases find things by exact words. ChromaDB finds things by meaning. If someone wrote "can't log into Jira" in Slack and you later ask "jira problem", ChromaDB connects those two even though the words are different.
+SentenceTransformer (all-MiniLM-L6-v2) is a small AI model with one job: take a sentence and turn it into a list of ~380 numbers called a vector (or embedding). Every sentence gets its own unique fingerprint of numbers. Sentences that mean similar things get similar numbers. That's the magic.
+"can't log into Jira"  → [0.23, -0.11, 0.87, ...]  ← similar numbers
+"jira login problem"   → [0.21, -0.09, 0.85, ...]  ← similar numbers
+"I like pizza"         → [-0.54, 0.33, -0.12, ...] ← very different numbers
+PersistentClient(path="./chroma_store") means the database saves to your hard drive in a folder called chroma_store. Without this, every time you restart the program, all the stored messages disappear.
+store_messages() — Writing in the notebook
+When messages come in from Slack, this function:
+
+Takes each message text
+Runs it through SentenceTransformer → gets a vector (list of numbers)
+Makes a unique ID using SHA256 hashing — this is like a fingerprint of the message. Same message always gets the same ID, so storing it twice doesn't create duplicates
+Uses collection.upsert() — "insert if new, update if already exists"
+
+search_messages() — Looking something up
+When you ask a question:
+
+Your question gets turned into a vector (list of numbers) too
+ChromaDB compares your question's numbers to every stored message's numbers
+Returns the 5 most numerically similar messages — which means the most semantically similar ones
+Returns them formatted with their channel name

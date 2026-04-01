@@ -1,0 +1,15 @@
+You type something
+        ↓
+1. search vectordb for similar past messages  ← always happens first
+        ↓
+2. detect intent: is this a SEND? READ? or QUESTION?
+        ↓
+3. pick which tools the AI is allowed to use  ← key safety step
+        ↓
+4. build a system message with the memory context
+        ↓
+5. if it's a question AND memory was found → inject memory INTO your message
+        ↓
+6. send everything to Groq AI
+        ↓
+7. run_agent_turn() handles whatever Groq says

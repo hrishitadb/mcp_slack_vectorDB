@@ -1,0 +1,70 @@
+is_send = "send" / "post" / "write" / "message" in your input
+is_read = "read" / "fetch" / "last" / "show" in your input
+```
+
+Based on this, only specific tools are made available:
+- Send intent → only `send_message` in the tool list
+- Read intent → only `read_messages` + `search_past_issues`
+- Question → if memory found: **no tools at all**; if no memory: `search_past_issues` only
+
+This is critical. Without this, the AI would sometimes call `send_message` when you asked a question, which posted random things to Slack.
+
+### `run_agent_turn()` — The AI loop
+
+This function handles the back-and-forth with Groq:
+
+1. Send messages to Groq API
+2. If Groq says "I want to call a tool" → execute it via MCP, add the result to messages, loop back to step 1
+3. If Groq gives a plain text answer → print it and stop
+4. If it loops more than 6 times (MAX_ITERATIONS) → force stop with a warning
+
+The messages list acts like a **conversation transcript**. Every tool call and its result gets added to it, so Groq always has full context of what's happened so far. It's trimmed to the last 20 messages to avoid sending too much to Groq.
+
+### How memory context is injected
+
+For questions where memory was found, the context isn't just given as a system message (the AI would ignore it). Instead it's literally embedded inside your user message:
+```
+"Here is relevant memory from Slack:
+[channel: ...] These are the steps for login into jira: 1. username 2. password
+
+Based on the above, answer this: give me solution to jira problem"
+```
+
+This forces the AI to see the answer right next to the question — it can't claim it has no context.
+
+---
+
+## How the three files talk to each other
+```
+You type "give me solution to jira problem"
+    ↓
+aiclient.py calls vectordb.search_messages("give me solution to jira problem")
+    → ChromaDB finds: "steps for login into jira: 1. username 2. password"
+    ↓
+aiclient.py detects: no action words → question intent → tools = []
+    ↓
+aiclient.py builds user message with memory embedded → sends to Groq
+    ↓
+Groq has no tools, sees the answer in the message → replies directly
+    ↓
+You see: "To resolve the Jira login issue, try: 1. username 2. password"
+
+
+You type "send hi to slack"
+    ↓
+aiclient.py calls vectordb.search_messages("send hi to slack")
+    → returns some old messages (irrelevant)
+    ↓
+aiclient.py detects: "send" → send intent → tools = [send_message only]
+    ↓
+aiclient.py sends to Groq with instruction: "call send_message ONCE, then stop"
+    ↓
+Groq calls send_message("C0AK1769FL0", "hi")
+    ↓
+aiclient.py receives tool call → passes to server.py via MCP
+    ↓
+server.py calls Slack API → posts "hi" to your channel
+    ↓
+server.py returns "✅ Message sent successfully"
+    ↓
+Groq sees the success → replies "Your message has been sent"
