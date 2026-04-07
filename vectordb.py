@@ -77,3 +77,5 @@ def search_messages(query, top_k=5):
     except Exception as e:
         print(f"⚠️ Vector search error: {e}")
         return []
+    
+    
