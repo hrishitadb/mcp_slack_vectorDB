@@ -1,0 +1,2 @@
+ Be concise and accurate. Dont hallucinate at all. 
+ When asked about images, only give relevent information regarding to the image which is knowledgable information like errors, output, codes, term and conditions etc, not colors and extra background information
