@@ -10,7 +10,7 @@ A local AI assistant that reads, searches, and writes to your Slack workspace us
 You (terminal)
     │
     ▼
-agent.py  ──── Groq LLM (intent parsing + answers)
+aiclient.py  ──── Groq LLM (intent parsing + answers)
     │
     ├── vectordb.py  ──── ChromaDB (persistent semantic memory)
     │                         sentence-transformers (embeddings)
@@ -21,7 +21,7 @@ agent.py  ──── Groq LLM (intent parsing + answers)
 ```
 
 **Flow for a read query:**
-1. `agent.py` sends user input to Groq → gets back `intent`, `channel_hint`, `last_n`
+1. `aiclient.py` sends user input to Groq → gets back `intent`, `channel_hint`, `last_n`
 2. `sync_new_messages` fetches only messages newer than what's already stored
 3. `vectordb` runs semantic search or latest-N lookup
 4. Context is passed to Groq → answer returned
@@ -36,7 +36,7 @@ agent.py  ──── Groq LLM (intent parsing + answers)
 ## Project Structure
 
 ```
-├── aiclient.py       # Main agent loop (rename of agent.py)
+├── aiclient.py       # Main agent loop (rename of aiclient.py)
 ├── server.py         # MCP Slack server — all Slack API calls live here
 ├── vectordb.py       # ChromaDB wrapper — storage, search, channel map
 ├── .env              # Secrets and config (never commit this)
